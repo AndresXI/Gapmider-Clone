@@ -9,6 +9,8 @@ const margin = {
 
 // Time to update function 
 let time = 0; 
+let interval; 
+let formattedData; 
  
 // defining our width and height 
 const width = 800 - margin.left - margin.right;
@@ -121,8 +123,8 @@ continents.forEach(function(continent, i) {
 
 // Working with our data in d3
 d3.json("./data/data.json").then(function(data) {
-  // Clean data 
-  const formattedData = data.map(function(year) { // map through each year 
+    // Clean data 
+    formattedData = data.map(function(year) { // map through each year 
     // loop through all the countries in each year 
     // and filter out each country that has a null value for the income and life expectancy properties 
     return year["countries"].filter(function(country) { 
@@ -137,21 +139,64 @@ d3.json("./data/data.json").then(function(data) {
     }); 
   }); 
 
-  // Run code every 0.1 seconds
-  d3.interval(function() {
-    // Loop back at the end of our data
-    time = (time < 214) ? time + 1: 0; 
-    update(formattedData[time]); 
-  }, 110); 
-
   // First run of our visualization 
   update(formattedData[0]); 
 
+  // select our play button
+  $("#play-button").on("click", function() {
+    const button = $(this);
+
+    if (button.text() == "Play") {
+      button.text("Pause");  
+      interval = setInterval(step, 100); 
+    }
+    else {
+      button.text("Play");
+      clearInterval(interval);  
+    }
+  }); 
+
+  // change our graph as we filter data 
+  $("#continent-select").on("change", function() {
+    update(formattedData[time]); 
+  }); 
+
+  // select our play button
+  $("#reset-button").on("click", function() {
+    time = 0; 
+    update(formattedData[0]); // update on the first year 
+  }); 
+
+  // Initialize slider on our date slider div
+  $("#date-slider").slider({
+    max: 2014,
+    min: 1800,
+    step: 1,
+    slide: function(event, ui) {
+      time = ui.value - 1800; // setting the time
+      update(formattedData[time]); 
+    }
+  })
+
+  // interval loop
+  function step() {
+    // Loop back at the end of our data
+    time = (time < 214) ? time + 1 : 0;
+    update(formattedData[time]); 
+  }
 
   // function to update our data every 0.1 seconds
   function update(data) {
     // Standard transition time for the visualization 
     const t = d3.transition().duration(100); 
+
+    let continent = $("#continent-select").val(); // gets the value of select element 
+    var data = data.filter(function(d) {
+      if (continent == "all") { return true; }
+      else {
+        return d.continent == continent; 
+      }
+    })
 
     // JOIN new data elements with old elements 
     let circles = g.selectAll("circle").data(data, function(d) {
@@ -178,6 +223,8 @@ d3.json("./data/data.json").then(function(data) {
 
     // Update the time label 
     timeLabel.text(+(time + 1800)); 
+    $("#year")[0].innerHTML = +(time + 1800); 
+    $("#data-slider").slider("value", +(time + 1800));
   }
    
 }).catch(function(error) {
