@@ -1,3 +1,4 @@
+
 // define our margins 
 const margin = {
   left: 80,
@@ -11,15 +12,28 @@ let time = 0;
  
 // defining our width and height 
 const width = 800 - margin.left - margin.right;
-const height = 600 - margin.top - margin.bottom;  
+const height = 500 - margin.top - margin.bottom;  
 
 // Adding the svg canvas adding a group for our svg elements  
 const g = d3.select("#chart-area")
       .append("svg")
-        .attr("width", width + margin.left + margin.right)
+        .attr("width", 1000 + margin.left + margin.right)
         .attr("height", width + margin.top + margin.bottom)
       .append("g")
         .attr("transform", "translate(" + margin.left + ", " + margin.top + ")");    
+
+/* Initialize tooltip */
+const tip = d3.tip().attr('class', 'd3-tip')
+  .html(function (d) {
+    // display html 
+    var text = "<strong>Country:</strong> <span style='color:red'>" + d.country + "</span><br>"; 
+    text += "<strong>Continent:</strong> <span style='color:red;text-transform:capitalize'>" + d.continent + "</span><br>"; 
+    text += "<strong>Life Expectancy:</strong> <span style='color:red'>" + d3.format(".2f")(d.life_exp) + "</span><br>"; 
+    text += "<strong>GDP Per Capita:</strong> <span style='color:red'>" + d3.format("$,.0f")(d.income) + "</span><br>"; 
+    text += "<strong>Population:</strong> <span style='color:red'>" + d3.format(",.0f")(d.population) + "</span><br>"; 
+    return text; 
+  });
+g.call(tip);         
 
 // Creating our X scale 
 const x = d3.scaleLog()
@@ -80,6 +94,29 @@ g.append("g")
   .attr("class", "y axis")
   .call(yAxisCall); 
 
+// Creating our legend
+const continents = ["europe", "asia", "americas", "africa"]; 
+const legend = g.append("g")
+  .attr("transform", "translate(" + (width - 10) + 
+    "," + (height - 125) + ")");   
+// append each of our legend row group 
+continents.forEach(function(continent, i) {
+  let legendRow = legend.append("g")
+    .attr("transform", "translate(0, " + (i * 20) + ")"); 
+
+  // Add a rectangle to our legend row 
+  legendRow.append("rect")
+    .attr("width", 10)
+    .attr("height", 10)
+    .attr("fill", continentColor(continent));   
+
+  legendRow.append("text")
+    .attr("x", -10)
+    .attr("y", 10)
+    .attr("text-anchor", "end") // left of squares 
+    .attr("text-transform", "capitalize")
+    .text(continent);
+}); 
 
 
 // Working with our data in d3
@@ -131,6 +168,8 @@ d3.json("./data/data.json").then(function(data) {
       .append("circle")
       .attr("class", "enter")
       .attr("fill", function(d) { return continentColor(d.continent); })
+      .on("mouseover", tip.show)
+      .on("mouseout", tip.hide)
       .merge(circles)
       .transition(t)
         .attr("cy", function(d) { return y(d.life_exp) })
